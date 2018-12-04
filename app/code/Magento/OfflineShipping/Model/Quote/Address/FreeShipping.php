@@ -56,30 +56,34 @@ class FreeShipping implements FreeShippingInterface
             $quote->getCouponCode()
         );
         $shippingAddress = $quote->getShippingAddress();
-        $shippingAddress->setFreeShipping(0);
-        /** @var \Magento\Quote\Api\Data\CartItemInterface $item */
-        foreach ($items as $item) {
-            if ($item->getNoDiscount()) {
-                $addressFreeShipping = false;
-                $item->setFreeShipping(false);
-                continue;
-            }
+        
+        if ((bool) $shippingAddress->getFreeShipping() === true) {
+            $result = true;
+        } else {
+            /** @var \Magento\Quote\Api\Data\CartItemInterface $item */
+            foreach ($items as $item) {
+                if ($item->getNoDiscount()) {
+                    $addressFreeShipping = false;
+                    $item->setFreeShipping(false);
+                    continue;
+                }
 
-            /** Child item discount we calculate for parent */
-            if ($item->getParentItemId()) {
-                continue;
-            }
+                /** Child item discount we calculate for parent */
+                if ($item->getParentItemId()) {
+                    continue;
+                }
 
-            $this->calculator->processFreeShipping($item);
-            // at least one item matches to the rule and the rule mode is not a strict
-            if ((bool)$item->getAddress()->getFreeShipping()) {
-                $result = true;
-                break;
-            }
+                $this->calculator->processFreeShipping($item);
+                // at least one item matches to the rule and the rule mode is not a strict
+                if ((bool)$item->getAddress()->getFreeShipping()) {
+                    $result = true;
+                    break;
+                }
 
-            $itemFreeShipping = (bool)$item->getFreeShipping();
-            $addressFreeShipping = $addressFreeShipping && $itemFreeShipping;
-            $result = $addressFreeShipping;
+                $itemFreeShipping = (bool)$item->getFreeShipping();
+                $addressFreeShipping = $addressFreeShipping && $itemFreeShipping;
+                $result = $addressFreeShipping;
+            }
         }
 
         $shippingAddress->setFreeShipping((int)$result);
